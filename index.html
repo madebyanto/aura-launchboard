@@ -22,9 +22,17 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        
+        // Persistenza Account: Forza il salvataggio locale
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        // Helper per errori (mantenuti i tuoi originali)
+        // Controllo Persistenza: Se l'utente è già loggato e verificato, vai in dashboard
+        auth.onAuthStateChanged((user) => {
+            if (user && user.emailVerified) {
+                window.location.href = "dashboard.html";
+            }
+        });
+
         function normalizeAuthError(err) {
             if (!err) return 'UNKNOWN';
             if (err.code === 'auth/internal-error') {
@@ -56,22 +64,46 @@
             --primary-dark: #c100e0;
             --aura-glow: rgba(224, 8, 246, 0.15);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Default Dark (Originale) */
+            --bg-color: #050505;
+            --card-bg: rgba(20, 20, 20, 0.8);
+            --text-main: #ffffff;
+            --text-sub: rgba(255, 255, 255, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.07);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --tab-bg: rgba(255, 255, 255, 0.05);
+            --splash-bg: #000000;
+        }
+
+        /* Tema Light Adattivo */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #f5f5f7;
+                --card-bg: rgba(255, 255, 255, 0.9);
+                --text-main: #1d1d1f;
+                --text-sub: rgba(0, 0, 0, 0.6);
+                --input-bg: rgba(0, 0, 0, 0.05);
+                --input-border: rgba(0, 0, 0, 0.1);
+                --tab-bg: rgba(0, 0, 0, 0.05);
+                --splash-bg: #ffffff;
+            }
         }
 
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins', sans-serif; }
 
         body {
-            background-color: #050505;
-            color: white;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
             position: relative;
+            transition: background-color 0.5s ease;
         }
 
-        /* Effetto Glow di Sfondo */
         .bg-glow {
             position: absolute;
             width: 500px; height: 500px;
@@ -81,17 +113,16 @@
             pointer-events: none;
         }
 
-        /* Splash Screen */
         #splash {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; display: flex; flex-direction: column;
+            background: var(--splash-bg); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 9999;
             transition: opacity 0.8s ease, visibility 0.8s;
         }
 
         .spinner {
             width: 40px; height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
+            border: 3px solid var(--input-border);
             border-top: 3px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -100,17 +131,16 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Container Principale */
         .auth-card {
-            background: rgba(20, 20, 20, 0.8);
+            background: var(--card-bg);
             backdrop-filter: blur(20px);
             padding: 40px;
             border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--input-border);
             width: 100%;
             max-width: 420px;
             z-index: 10;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
             text-align: center;
         }
 
@@ -118,12 +148,11 @@
         .logo:hover { transform: scale(1.05); filter: drop-shadow(0 0 10px var(--primary)); }
 
         h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.5px; }
-        p.subtitle { font-size: 0.9rem; opacity: 0.6; margin-bottom: 30px; }
+        p.subtitle { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 30px; }
 
-        /* Tab Switch */
         .tab-group {
             display: flex;
-            background: rgba(255,255,255,0.05);
+            background: var(--tab-bg);
             padding: 5px;
             border-radius: 12px;
             margin-bottom: 30px;
@@ -131,28 +160,25 @@
 
         .tab-btn {
             flex: 1; padding: 10px; border: none; background: none;
-            color: white; font-size: 0.9rem; font-weight: 500;
+            color: var(--text-main); font-size: 0.9rem; font-weight: 500;
             cursor: pointer; border-radius: 8px; transition: var(--transition);
         }
 
-        .tab-btn.active { background: var(--primary); box-shadow: 0 4px 12px rgba(224, 8, 246, 0.3); }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(224, 8, 246, 0.3); }
 
-        /* Form */
         form { display: flex; flex-direction: column; gap: 15px; }
-        
-        .input-group { position: relative; text-align: left; }
         
         input {
             width: 100%; padding: 14px 16px;
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px; color: white; font-size: 0.95rem;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px; color: var(--text-main); font-size: 0.95rem;
             transition: var(--transition);
         }
 
         input:focus {
             outline: none; border-color: var(--primary);
-            background: rgba(255,255,255,0.1);
+            background: var(--input-bg);
             box-shadow: 0 0 0 4px rgba(224, 8, 246, 0.1);
         }
 
@@ -164,27 +190,22 @@
         }
 
         button.main-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
-        button.main-btn:active { transform: translateY(0); }
 
-        /* Link e Messaggi */
         .footer-links { margin-top: 20px; font-size: 0.85rem; }
         .footer-links a { color: var(--primary); text-decoration: none; font-weight: 500; }
-        .footer-links a:hover { text-decoration: underline; }
 
         .message {
             font-size: 0.85rem; padding: 10px; border-radius: 8px;
             margin-bottom: 20px; display: none;
             animation: fadeIn 0.3s ease;
         }
-        .message.info { display: block; background: rgba(224, 8, 246, 0.1); color: #ffb3d9; }
+        .message.info { display: block; background: rgba(224, 8, 246, 0.1); color: var(--primary); }
         .message.error { display: block; background: rgba(255, 75, 43, 0.1); color: #ff4b2b; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Responsive */
         @media (max-width: 480px) {
             .auth-card { padding: 30px 20px; border-radius: 0; height: 100%; max-width: 100%; border: none; }
-            body { background: #000; }
         }
     </style>
 </head>
@@ -194,7 +215,7 @@
 
 <div id="splash">
     <div class="spinner"></div>
-    <p style="letter-spacing: 2px; font-size: 0.8rem; opacity: 0.6;">Connessione al server...</p>
+    <p style="letter-spacing: 2px; font-size: 0.8rem; opacity: 0.6; color: var(--text-main);">Connessione al server...</p>
 </div>
 
 <div class="auth-card">
@@ -258,7 +279,6 @@
         loginBox.style.display = 'none'; signupBox.style.display = 'block';
     };
 
-    // Messaggi Helper
     function showMsg(boxId, text, isError = false) {
         const el = document.getElementById(boxId);
         el.textContent = text;
@@ -287,8 +307,6 @@
     // Logic Signup
     document.getElementById('signup-form').onsubmit = (e) => {
         e.preventDefault();
-        const nome = document.getElementById('s-nome').value;
-        const cognome = document.getElementById('s-cognome').value;
         const email = document.getElementById('s-email').value;
         const pass = document.getElementById('s-pass').value;
 
@@ -318,7 +336,7 @@
             const splash = document.getElementById('splash');
             splash.style.opacity = '0';
             setTimeout(() => splash.style.visibility = 'hidden', 800);
-        }, 2000); // 2 secondi è il tempo ideale per non annoiare l'utente
+        }, 1500); 
     };
 </script>
 
