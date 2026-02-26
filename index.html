@@ -10,7 +10,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDsrHAtIh5bsYDHa1wz0LMcmciChAoRikU",
@@ -22,6 +22,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        const db = firebase.firestore();
         
         // Persistenza Account: Forza il salvataggio locale
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -313,10 +314,20 @@
         showMsg('msg-signup', 'Creazione account...');
         auth.createUserWithEmailAndPassword(email, pass)
             .then(async (res) => {
-                await res.user.sendEmailVerification();
-                showMsg('msg-signup', 'Email di verifica inviata! Controlla la posta.');
-                setTimeout(() => tabLogin.click(), 3000);
-            })
+    const user = res.user;
+
+    // 🔥 CREA /users/{UID}
+    await db.collection("users").doc(user.uid).set({
+        nome: document.getElementById('s-nome').value,
+        cognome: document.getElementById('s-cognome').value,
+        saldo: 0
+    });
+
+    await user.sendEmailVerification();
+
+    showMsg('msg-signup', 'Email di verifica inviata! Controlla la posta.');
+    setTimeout(() => tabLogin.click(), 3000);
+})
             .catch(err => showMsg('msg-signup', getAuthErrorMessage(normalizeAuthError(err)), true));
     };
 
