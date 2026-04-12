@@ -707,6 +707,41 @@
             .form-row { grid-template-columns: 1fr; }
             .modal { padding: 24px; }
         }
+        .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--surface-2);
+    transition: var(--transition);
+}
+
+.upload-area i {
+    font-size: 20px;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.upload-area p {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.upload-area span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.upload-area:hover {
+    border-color: var(--border-accent);
+    background: var(--accent-soft);
+}
+
+.upload-area.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
     </style>
 </head>
 <body>
@@ -848,10 +883,19 @@
                     <label>URL immagine</label>
                     <input type="text" id="edit-profileImage" placeholder="Incolla link immagine...">
                 </div>
-                <div class="avatar-preview-row">
-                    <img id="profile-preview" src="images/default.png" alt="Anteprima">
-                    <p>L'anteprima si aggiorna automaticamente mentre scrivi.</p>
-                </div>
+                <!-- Upload area -->
+<div class="upload-area" id="upload-area">
+    <i class="fa-solid fa-cloud-arrow-up"></i>
+    <p>Trascina qui la tua immagine</p>
+    <span>oppure caricala manualmente</span>
+    <input type="file" id="file-input" accept="image/*" hidden>
+</div>
+
+<!-- Preview -->
+<div class="avatar-preview-row">
+    <img id="profile-preview" src="images/default.png" alt="Anteprima">
+    <p>L'anteprima si aggiorna automaticamente.</p>
+</div>
                 <button class="btn-save" onclick="saveProfile()">
                     <i class="fa-solid fa-floppy-disk"></i> Salva immagine
                 </button>
@@ -1087,7 +1131,7 @@
         const updates = {
             nome:           document.getElementById('edit-nome').value.trim(),
             cognome:        document.getElementById('edit-cognome').value.trim(),
-            profileImage:   document.getElementById('edit-profileImage').value.trim(),
+            profileImage: uploadedImageURL || document.getElementById('profile-preview').src,
             'bio.description': document.getElementById('edit-description').value.trim()
         };
         try {
@@ -1214,6 +1258,74 @@
             btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Elimina per sempre';
         }
     }
+    // ── Upload immagine profilo ──
+const uploadArea = document.getElementById('upload-area');
+const fileInput  = document.getElementById('file-input');
+let uploadedImageURL = '';
+
+// click → file picker
+uploadArea.addEventListener('click', () => fileInput.click());
+
+// selezione manuale
+fileInput.addEventListener('change', e => {
+    handleImage(e.target.files[0]);
+});
+
+// drag events
+uploadArea.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    handleImage(e.dataTransfer.files[0]);
+});
+
+// gestione immagine
+function handleImage(file) {
+    if (!file) return;
+
+    const img = new Image();
+    img.onload = () => {
+        if (img.width < 512 || img.height < 512) {
+            showToast('Immagine troppo piccola (min 512x512)', 'error');
+            return;
+        }
+        uploadToAPI(file);
+    };
+    img.src = URL.createObjectURL(file);
+}
+
+// upload API
+async function uploadToAPI(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch('https://pfp-api.aurastudioitalia.it/', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+
+        uploadedImageURL = data.url;
+
+        document.getElementById('profile-preview').src = uploadedImageURL;
+
+        showToast('Immagine caricata!', 'success');
+
+    } catch (err) {
+        showToast('Errore upload immagine', 'error');
+        console.error(err);
+    }
+}
 </script>
 
 </body>
