@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Dashboard</title>
+    <link rel="icon" href="images/aura-nobg.png" type="image/png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <style>
+        :root {
+            --accent: #F05BFF;
+            --accent-glow: rgba(240, 91, 255, 0.35);
+            --accent-soft: rgba(240, 91, 255, 0.1);
+            --gradient: linear-gradient(135deg, #F05BFF 0%, #7000FF 100%);
+            --transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+
+            /* Light */
+            --bg: #f2f2f7;
+            --text: #1d1d1f;
+            --text-muted: #6e6e73;
+            --glass: rgba(255,255,255,0.65);
+            --glass-hover: rgba(255,255,255,0.85);
+            --border: rgba(0,0,0,0.07);
+            --app-bg: #ffffff;
+            --dropdown-bg: rgba(255,255,255,0.92);
+            --shadow: 0 8px 24px rgba(0,0,0,0.08);
+            --shadow-hover: 0 20px 48px rgba(240,91,255,0.2);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #070709;
+                --text: #f5f5f7;
+                --text-muted: #a1a1a6;
+                --glass: rgba(255,255,255,0.06);
+                --glass-hover: rgba(255,255,255,0.1);
+                --border: rgba(255,255,255,0.07);
+                --app-bg: rgba(28,28,32,0.9);
+                --dropdown-bg: rgba(22,22,26,0.95);
+                --shadow: 0 8px 32px rgba(0,0,0,0.4);
+                --shadow-hover: 0 20px 60px rgba(240,91,255,0.25);
+            }
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Background ─── */
+        .bg-glow {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(130px);
+            animation: pulseGlow 10s ease-in-out infinite alternate;
+        }
+        .glow-orb-1 {
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(240,91,255,0.18), transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+        }
+        .glow-orb-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(112,0,255,0.12), transparent 70%);
+            bottom: -100px; right: -100px;
+            animation-delay: -5s;
+        }
+        @keyframes pulseGlow {
+            from { opacity: 0.4; transform: translate(-50%,-50%) scale(1); }
+            to   { opacity: 0.6; transform: translate(-50%,-50%) scale(1.25); }
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(240,91,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240,91,255,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 100%);
+        }
+
+        /* ─── Header ─── */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 36px;
+            z-index: 10;
+            position: relative;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .header-logo img { width: 32px; height: 32px; border-radius: 8px; }
+        .header-logo-name {
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--text);
+            opacity: 0.8;
+        }
+
+        /* ─── Profile pill ─── */
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 7px 14px 7px 7px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            box-shadow: var(--shadow);
+        }
+        .profile:hover {
+            background: var(--glass-hover);
+            border-color: rgba(240,91,255,0.3);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        .profile-avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent);
+            flex-shrink: 0;
+        }
+
+        .profile-text { display: flex; flex-direction: column; line-height: 1.2; }
+        .profile-name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+        .profile-uid  { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; }
+
+        .profile-chevron {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-left: 2px;
+            transition: transform 0.3s;
+        }
+        .profile.open .profile-chevron { transform: rotate(180deg); }
+
+        /* ─── Dropdown ─── */
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: 210px;
+            background: var(--dropdown-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+            padding: 8px;
+            z-index: 100;
+            animation: dropIn 0.2s ease both;
+        }
+        @keyframes dropIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .dropdown.open { display: block; }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-radius: 12px;
+            transition: all 0.18s;
+        }
+        .dropdown-item i { width: 16px; text-align: center; opacity: 0.6; }
+        .dropdown-item:hover { background: var(--accent-soft); color: var(--accent); }
+        .dropdown-item:hover i { opacity: 1; }
+        .dropdown-item.danger { color: #ff6b6b; }
+        .dropdown-item.danger i { color: #ff6b6b; }
+        .dropdown-item.danger:hover { background: rgba(255,107,107,0.1); color: #ff6b6b; }
+
+        .dropdown-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 6px 0;
+        }
+
+        /* ─── Greeting ─── */
+        .greeting {
+            text-align: center;
+            z-index: 2;
+            position: relative;
+            margin-bottom: 8px;
+            animation: fadeUp 0.6s ease both;
+        }
+        .greeting-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .greeting-name {
+            font-size: clamp(1.4rem, 4vw, 2rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            opacity: 0.9;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Main ─── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            padding: 0 20px 32px;
+            gap: 28px;
+        }
+
+        /* ─── App Grid ─── */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 340px;
+            width: 100%;
+        }
+
+        @media (min-width: 600px) {
+            .app-grid {
+                grid-template-columns: repeat(6, 1fr);
+                max-width: 620px;
+                gap: 24px;
+            }
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text);
+            opacity: 0;
+            transform: scale(0.75) translateY(10px);
+            animation: appPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes appPop {
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .app-container:nth-child(1) { animation-delay: 0.08s; }
+        .app-container:nth-child(2) { animation-delay: 0.16s; }
+        .app-container:nth-child(3) { animation-delay: 0.24s; }
+        .app-container:nth-child(4) { animation-delay: 0.32s; }
+        .app-container:nth-child(5) { animation-delay: 0.40s; }
+        .app-container:nth-child(6) { animation-delay: 0.48s; }
+
+        .app-icon {
+            width: 84px; height: 84px;
+            background: var(--app-bg);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        .app-icon::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent 60%);
+            pointer-events: none;
+        }
+        .app-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+        .app-container:hover .app-icon {
+            transform: translateY(-10px) scale(1.06);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(240,91,255,0.3);
+        }
+
+        .app-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: color 0.25s;
+            text-align: center;
+        }
+        .app-container:hover .app-label { color: var(--accent); }
+
+        /* ─── Footer hint ─── */
+        .footer-hint {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+            z-index: 5;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow">
+        <div class="glow-orb glow-orb-1"></div>
+        <div class="glow-orb glow-orb-2"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <header>
+        <a href="/index.html" class="header-logo">
+            <img src="images/aura-nobg.png" alt="Aura">
+            <span class="header-logo-name">Aura</span>
+        </a>
+
+        <div class="profile" id="profile-trigger">
+            <img id="profile-img" class="profile-avatar" src="images/default.png" alt="User">
+            <div class="profile-text">
+                <span class="profile-name" id="profile-name">Caricamento...</span>
+                <span class="profile-uid"  id="profile-uid">ID: —</span>
+            </div>
+            <i class="fa-solid fa-chevron-down profile-chevron"></i>
+
+            <div class="dropdown" id="profile-menu">
+                <a href="settings.html" class="dropdown-item">
+                    <i class="fa-solid fa-gear"></i> Impostazioni
+                </a>
+                <a href="https://support.aurastudioitalia.it" class="dropdown-item">
+                    <i class="fa-solid fa-circle-question"></i> Supporto
+                </a>
+                <hr class="dropdown-divider">
+                <a href="#" class="dropdown-item danger" id="logout-btn">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Esci
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="greeting">
+            <div class="greeting-label">Launchboard</div>
+            <div class="greeting-name" id="greeting-name">Benvenuto 👋</div>
+        </div>
+
+        <div class="app-grid">
+            <a href="https://nyra.aurastudioitalia.it/app" class="app-container">
+                <div class="app-icon"><img src="images/apps/nyra.png" alt="Nyra"></div>
+                <span class="app-label">Nyra</span>
+            </a>
+            <a href="https://store.aurastudioitalia.it" class="app-container">
+                <div class="app-icon"><img src="images/apps/store.png" alt="Store"></div>
+                <span class="app-label">Store</span>
+            </a>
+            <a href="https://ko-fi.com/s/a65febefc1" class="app-container">
+                <div class="app-icon"><img src="images/apps/chat.png" alt="Chat"></div>
+                <span class="app-label">Chat</span>
+            </a>
+            <a href="https://verse.aurastudioitalia.it" class="app-container">
+                <div class="app-icon"><img src="images/apps/verse.png" alt="Verse"></div>
+                <span class="app-label">AuraVerse</span>
+            </a>
+            <a href="https://github.com/madebyanto/pctool.aura/releases/tag/FinalUpdate" class="app-container">
+                <div class="app-icon"><img src="images/apps/acm.png" alt="ACM"></div>
+                <span class="app-label">ACM</span>
+            </a>
+            <a href="https://docs.aurastudioitalia.it" class="app-container">
+                <div class="app-icon"><img src="images/apps/auradocs.png" alt="Docs"></div>
+                <span class="app-label">Docs</span>
+            </a>
+            <a href="https://tasks.aurastudioitalia.it" class="app-container">
+                <div class="app-icon"><img src="images/apps/auratasks.svg" alt="Tasks"></div>
+                <span class="app-label">Tasks</span>
+            </a>
+            <a href="https://calendar.aurastudioitalia.it" class="app-container">
+                <div class="app-icon"><img src="images/apps/auracalendar.svg" alt="Calendar"></div>
+                <span class="app-label">Calendar</span>
+            </a>
+        </div>
+    </main>
+
+    <p class="footer-hint" id="footer-hint">Aura Launchboard</p>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsrHAtIh5bsYDHa1wz0LMcmciChAoRikU",
+            authDomain: "myauraid-f03c6.firebaseapp.com",
+            projectId: "myauraid-f03c6",
+            storageBucket: "myauraid-f03c6.appspot.com",
+            messagingSenderId: "190478237725",
+            appId: "1:190478237725:web:0d39907473f511b85a06f4"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db   = firebase.firestore();
+
+        // ── Dropdown ──
+        const trigger  = document.getElementById('profile-trigger');
+        const menu     = document.getElementById('profile-menu');
+
+        trigger.addEventListener('click', e => {
+            e.stopPropagation();
+            const isOpen = menu.classList.toggle('open');
+            trigger.classList.toggle('open', isOpen);
+        });
+        window.addEventListener('click', () => {
+            menu.classList.remove('open');
+            trigger.classList.remove('open');
+        });
+
+        // ── Logout ──
+        document.getElementById('logout-btn').addEventListener('click', async e => {
+            e.preventDefault();
+            await auth.signOut();
+            window.location.href = 'index.html';
+        });
+
+        // ── Auth & Data ──
+        function getGreeting() {
+            const h = new Date().getHours();
+            if (h < 12) return 'Buongiorno';
+            if (h < 18) return 'Buon pomeriggio';
+            return 'Buonasera';
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (!user) { window.location.href = 'index.html'; return; }
+
+            db.collection('users').doc(user.uid).get().then(doc => {
+                if (!doc.exists) return;
+                const data = doc.data();
+                const nome = data.nome || '';
+                document.getElementById('profile-name').textContent   = `${nome} ${data.cognome || ''}`.trim();
+                document.getElementById('profile-img').src            = data.profileImage || 'images/default.png';
+                document.getElementById('profile-uid').textContent    = 'ID: ' + user.uid.substring(0, 12) + '…';
+                document.getElementById('greeting-name').textContent  = `${getGreeting()}, ${nome} 👋`;
+                document.getElementById('footer-hint').textContent    = 'Aura Launchboard · ' + user.uid.substring(0, 8) + '…';
+            }).catch(err => console.error('Errore:', err));
+        });
+    </script>
+</body>
+</html>
