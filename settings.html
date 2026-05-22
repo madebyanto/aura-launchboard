@@ -815,10 +815,6 @@
                         <span id="overview-name-detail">—</span>
                     </div>
                     <div class="info-item">
-                        <label>Username</label>
-                        <span id="overview-username-detail">—</span>
-                    </div>
-                    <div class="info-item">
                         <label>Email</label>
                         <span id="overview-email-detail">—</span>
                     </div>
@@ -858,10 +854,6 @@
                         <input type="text" id="edit-cognome" placeholder="Il tuo cognome">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="edit-username" placeholder="@username">
-                </div>
                 <button class="btn-save" onclick="saveProfile()">
                     <i class="fa-solid fa-floppy-disk"></i> Salva modifiche
                 </button>
@@ -889,7 +881,7 @@
                 </div>
                 <div class="form-group">
                     <label>URL immagine</label>
-                    <input type="text" id="edit-profileImage" placeholder="URL generato automaticamente" readonly style="cursor: default; opacity: 0.8;">
+                    <input type="text" id="edit-profileImage" placeholder="Incolla link immagine...">
                 </div>
                 <!-- Upload area -->
 <div class="upload-area" id="upload-area">
@@ -1100,7 +1092,6 @@
 
     // ── Auth ──
     let currentUID = '';
-    let oldUsername = '';
 
     auth.onAuthStateChanged(async user => {
         if (!user) { window.location.href = 'index.html'; return; }
@@ -1118,14 +1109,11 @@
         const bio   = data.bio?.description || '';
         const saldo = (data.saldo || 0).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
-        oldUsername = data.username || '';
-
         // Panoramica
         document.getElementById('overview-name').textContent         = nomeCompleto;
         document.getElementById('overview-name-detail').textContent  = nomeCompleto;
         document.getElementById('overview-email').textContent        = user.email;
         document.getElementById('overview-email-detail').textContent = user.email;
-        document.getElementById('overview-username-detail').textContent = oldUsername || 'Non impostato';
         document.getElementById('overview-saldo').textContent        = saldo;
         document.getElementById('overview-badge').textContent        = data.badge || 'Membro';
         document.getElementById('overview-description').textContent  = bio || 'Nessuna descrizione.';
@@ -1140,7 +1128,6 @@
         // Form
         document.getElementById('edit-nome').value        = data.nome || '';
         document.getElementById('edit-cognome').value     = data.cognome || '';
-        document.getElementById('edit-username').value    = oldUsername;
         document.getElementById('edit-description').value = bio;
         document.getElementById('description-preview').textContent = bio || 'Nessuna anteprima';
     }
@@ -1149,8 +1136,6 @@
     async function saveProfile() {
         const user = auth.currentUser;
         if (!user) return;
-
-        const newUsername = document.getElementById('edit-username').value.trim().toLowerCase();
 
         // uploadedImageURL ha priorità; altrimenti usa il campo testo
         const profileImage = uploadedImageURL || document.getElementById('edit-profileImage').value.trim() || 'images/default.png';
@@ -1163,25 +1148,6 @@
         };
 
         try {
-            // Gestione Username (Univocità in nicknames/{USERNAME})
-            if (newUsername !== oldUsername) {
-                if (newUsername) {
-                    // Controlla se l'username è già occupato da qualcun altro
-                    const nickDoc = await db.collection('nicknames').doc(newUsername).get();
-                    if (nickDoc.exists) {
-                        showToast('Username già in uso!', 'error');
-                        return;
-                    }
-                    // Libera il vecchio username e prenota il nuovo
-                    if (oldUsername) await db.collection('nicknames').doc(oldUsername).delete();
-                    await db.collection('nicknames').doc(newUsername).set({ uid: user.uid });
-                    updates.username = newUsername;
-                } else if (oldUsername) {
-                    await db.collection('nicknames').doc(oldUsername).delete();
-                    updates.username = "";
-                }
-            }
-
             await db.collection('users').doc(user.uid).update(updates);
             showToast('Profilo aggiornato con successo!', 'success');
 
@@ -1191,11 +1157,6 @@
             document.getElementById('overview-name-detail').textContent = nomeCompleto;
             document.getElementById('overview-img').src                 = profileImage;
             document.getElementById('overview-description').textContent = updates['bio.description'] || 'Nessuna descrizione.';
-
-            if (updates.username !== undefined) {
-                oldUsername = updates.username;
-                document.getElementById('overview-username-detail').textContent = oldUsername || 'Non impostato';
-            }
 
             // Reset URL uploadata dopo salvataggio
             uploadedImageURL = '';
@@ -1230,6 +1191,13 @@
     }
 
     // ── Live previews ──
+    document.getElementById('edit-profileImage').addEventListener('input', e => {
+        const val = e.target.value.trim();
+        document.getElementById('profile-preview').src = val || 'images/default.png';
+        // Se l'utente digita manualmente un URL, annulla eventuale upload precedente
+        uploadedImageURL = '';
+    });
+
     document.getElementById('edit-description').addEventListener('input', e => {
         document.getElementById('description-preview').textContent = e.target.value || 'Nessuna anteprima';
     });
@@ -1308,9 +1276,9 @@
                 throw new Error(data.error || `Errore ${res.status}`);
             }
 
-            // Se il server restituisce già un URL assoluto (che inizia con http), lo usiamo direttamente.
-            // Altrimenti, lo concateniamo alla base PFP_BASE.
-            uploadedImageURL = data.url.startsWith('http') ? data.url : PFP_BASE + data.url;
+            // Il server restituisce { ok: true, url: "/pfp/uid/profileImage.webp" }
+            // Costruiamo l'URL completo
+            uploadedImageURL = PFP_BASE + data.url;
 
             // Aggiorna anteprima e campo URL
             document.getElementById('profile-preview').src     = uploadedImageURL;
